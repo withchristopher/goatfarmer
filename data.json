@@ -1,38 +1,12 @@
 {
-  "entities": {
-    "goat": {
-      "needs": ["feed", "water", "shelter"],
-      "produces": "milk",
-      "healthRisks": ["worms", "infection", "stress"]
-    },
-
-    "feed": {
-      "types": ["roughage", "concentrates"],
-      "rules": [
-        "Feed must be fresh",
-        "Avoid mouldy or spoiled feed"
-      ]
-    },
-
-    "water": {
-      "rules": [
-        "Water must be clean",
-        "Water must always be available"
-      ]
-    },
-
-    "shelter": {
-      "rules": [
-        "Shelter must be dry",
-        "Shelter must be well ventilated",
-        "Shelter must be cleaned regularly"
-      ]
-    }
+  "userMemory": {
+    "goat_type": "Boer",
+    "average_milk_liters": 4,
+    "prefers_fast": true
   },
 
   "symptoms": {
     "not_eating": {
-      "entity": "goat",
       "possibleCauses": [
         "dirty_water",
         "spoiled_feed",
@@ -40,15 +14,14 @@
         "stress"
       ],
       "advice": [
-        "Check water cleanliness and availability",
-        "Inspect feed for mould or bad smell",
-        "Observe goat for illness signs",
+        "Check that water is clean and available",
+        "Smell and inspect feed for mould",
+        "Observe the goat for sickness",
         "Reduce noise and overcrowding"
       ]
     },
 
     "low_milk_production": {
-      "entity": "goat",
       "possibleCauses": [
         "poor_feed",
         "stress",
@@ -58,43 +31,52 @@
       "advice": [
         "Improve feed quality",
         "Reduce stress during milking",
-        "Maintain clean milking practices"
+        "Keep the milking area clean"
       ]
     }
   },
 
-  "actions": {
-    "clean_shelter": {
-      "frequency": "Daily spot clean, weekly deep clean",
-      "benefit": "Prevents disease and improves milk production"
+  "cheeses": {
+    "fresh_cheese": {
+      "milk_min": 1,
+      "milk_max": 5,
+      "time_hours": 6,
+      "storage_days": 3
     },
-
-    "isolate_sick_goat": {
-      "when": "Immediately when sickness is noticed",
-      "how": [
-        "Move goat to separate pen",
-        "Use separate feed and water containers"
-      ],
-      "benefit": "Prevents disease spread"
+    "chevre": {
+      "milk_min": 2,
+      "milk_max": 10,
+      "time_hours": 24,
+      "storage_days": 10
+    },
+    "hard_cheese": {
+      "milk_min": 10,
+      "milk_max": 30,
+      "time_hours": 1440,
+      "storage_days": 180
     }
   },
 
   "questions": [
     {
       "ask": "My goat is not eating. What should I do?",
-      "symptom": "not_eating"
+      "type": "symptom",
+      "key": "not_eating"
     },
     {
       "ask": "Why is my goat giving less milk?",
-      "symptom": "low_milk_production"
+      "type": "symptom",
+      "key": "low_milk_production"
     },
     {
-      "ask": "How often must I clean the goat shelter?",
-      "action": "clean_shelter"
+      "ask": "I have milk today. What cheese can I make quickly?",
+      "type": "cheese",
+      "goal": "fast"
     },
     {
-      "ask": "When should I separate a sick goat?",
-      "action": "isolate_sick_goat"
+      "ask": "I want to store or sell cheese. What should I make?",
+      "type": "cheese",
+      "goal": "storage"
     }
   ]
 }
