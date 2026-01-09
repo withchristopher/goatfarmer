@@ -40,7 +40,7 @@ body {
 }
 
 .header button {
-  background: transparent;
+  background: none;
   border: none;
   color: #fff;
   font-size: 14px;
@@ -99,7 +99,7 @@ body {
   background: #fff;
   border: 1px solid #ccc;
   border-radius: 6px;
-  padding: 6px;
+  padding: 8px;
   margin-bottom: 6px;
   font-size: 13px;
   cursor: pointer;
@@ -109,7 +109,6 @@ body {
   background: #ddd;
 }
 
-/* About screen */
 .about {
   flex: 1;
   background: #fff;
@@ -117,10 +116,6 @@ body {
   font-size: 14px;
   line-height: 1.4;
   overflow-y: auto;
-}
-
-.about h2 {
-  margin-top: 0;
 }
 </style>
 </head>
@@ -133,50 +128,51 @@ body {
     <button onclick="showAbout()">About</button>
   </div>
 
-  <!-- Chat Screen -->
+  <!-- CHAT SCREEN -->
   <div class="screen active" id="chatScreen">
     <div class="chat" id="chat"></div>
     <div class="footer" id="questions"></div>
   </div>
 
-  <!-- About Screen -->
+  <!-- ABOUT SCREEN -->
   <div class="screen" id="aboutScreen">
-   <div class="about">
+    <div class="about">
       <h2>About GOATFarmer</h2>
-    
+
       <p>
-        <strong>GOATFarmer</strong> is a simple helper for people who keep goats.
-        It gives advice the same way an experienced farmer would.
+        <strong>GOATFarmer</strong> helps people who keep goats make better
+        day-to-day decisions.
       </p>
-    
+
       <p>
-        You can use it when your goat is not eating, giving less milk,
-        or when you are not sure what to do.
+        It works like advice from an experienced farmer.
+        You can use it when goats are sick, not eating,
+        giving less milk, or when you want to make cheese.
       </p>
-    
-      <h3>Why GOATFarmer helps</h3>
+
+      <h3>Why this helps</h3>
       <ul>
-        <li>Works on basic phones</li>
+        <li>Works on simple phones</li>
         <li>Does not need internet all the time</li>
-        <li>Gives clear, practical advice</li>
+        <li>Gives clear steps, not long explanations</li>
         <li>Helps you act early before problems get worse</li>
       </ul>
-    
+
       <h3>How to use it</h3>
       <ul>
-        <li>Tap a question at the bottom of the screen</li>
-        <li>Read the possible causes</li>
-        <li>Follow the steps shown</li>
+        <li>Tap a question below</li>
+        <li>Read the causes</li>
+        <li>Follow the steps</li>
       </ul>
-    
+
       <p>
-        The advice comes from real goat farming knowledge about
-        feeding, clean water, shelter, health and milk production.
+        The advice is based on real goat farming knowledge
+        about feeding, clean water, shelter, health,
+        milk and cheese making.
       </p>
-    
+
       <button onclick="showChat()">⬅ Back to Chat</button>
     </div>
-
   </div>
 </div>
 
@@ -191,21 +187,32 @@ function showChat() {
   document.getElementById("chatScreen").classList.add("active");
 }
 
-fetch("data.json")
-  .then(res => res.json())
-  .then(graph => {
-    const chat = document.getElementById("chat");
-    const questions = document.getElementById("questions");
+const chat = document.getElementById("chat");
+const questionsDiv = document.getElementById("questions");
 
-    function addMessage(text, sender) {
-      const msg = document.createElement("div");
-      msg.className = "msg " + sender;
-      msg.innerText = text;
-      chat.appendChild(msg);
-      chat.scrollTop = chat.scrollHeight;
+function addMessage(text, sender) {
+  const msg = document.createElement("div");
+  msg.className = "msg " + sender;
+  msg.innerText = text;
+  chat.appendChild(msg);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+fetch("data.json")
+  .then(res => {
+    if (!res.ok) throw new Error("data.json not found");
+    return res.json();
+  })
+  .then(graph => {
+
+    let user = JSON.parse(localStorage.getItem("goatfarmer_user")) 
+      || graph.userMemory;
+
+    function saveUser() {
+      localStorage.setItem("goatfarmer_user", JSON.stringify(user));
     }
 
-    function buildSymptomResponse(key) {
+    function symptomResponse(key) {
       const s = graph.symptoms[key];
       let r = "Possible causes:\n";
       s.possibleCauses.forEach(c => r += "• " + c.replace(/_/g," ") + "\n");
@@ -214,42 +221,61 @@ fetch("data.json")
       return r;
     }
 
-    function buildActionResponse(key) {
-      const a = graph.actions[key];
-      let r = "";
-      if (a.when) r += "When:\n• " + a.when + "\n\n";
-      if (a.frequency) r += "How often:\n• " + a.frequency + "\n\n";
-      if (a.how) {
-        r += "How:\n";
-        a.how.forEach(h => r += "• " + h + "\n");
-        r += "\n";
+    function cheeseResponse(goal) {
+      const milk = user.average_milk_liters;
+      let matches = [];
+
+      Object.entries(graph.cheeses).forEach(([name, c]) => {
+        if (milk >= c.milk_min && milk <= c.milk_max) {
+          if (goal === "fast" && c.time_hours <= 24) matches.push(name);
+          if (goal === "storage" && c.storage_days >= 10) matches.push(name);
+        }
+      });
+
+      if (!matches.length) {
+        return "With the milk you have today, fresh cheese is the best choice.";
       }
-      if (a.benefit) r += "Why:\n• " + a.benefit;
+
+      let r = "Based on your milk today (" + milk + " liters):\n";
+      matches.forEach(m => r += "• " + m.replace(/_/g," ") + "\n");
       return r;
     }
 
-    graph.questions.forEach(q => {
+    graph.questions.slice(0, 4).forEach(q => {
       const btn = document.createElement("div");
       btn.className = "question";
       btn.innerText = q.ask;
+
       btn.onclick = () => {
         addMessage(q.ask, "worker");
         setTimeout(() => {
-          let reply = q.symptom
-            ? buildSymptomResponse(q.symptom)
-            : buildActionResponse(q.action);
+          const reply =
+            q.type === "symptom"
+              ? symptomResponse(q.key)
+              : cheeseResponse(q.goal);
+
           addMessage(reply, "farmer");
-        }, 400);
+          saveUser();
+        }, 300);
       };
-      questions.appendChild(btn);
+
+      questionsDiv.appendChild(btn);
     });
 
     addMessage(
-      "I can help with feeding, health, shelter and milk production.\nTap a question below.",
+      "I can help with goats, milk, and simple cheese making.\nTap a question below.",
+      "farmer"
+    );
+  })
+  .catch(err => {
+    console.error(err);
+    addMessage(
+      "Error loading farm knowledge.\nMake sure data.json is in the same folder.",
       "farmer"
     );
   });
 </script>
+
 
 </body>
 </html>
